@@ -1,0 +1,79 @@
+import requests
+import traceback
+import re
+from bs4 import BeautifulSoup
+
+def getHTMLText(url): #爬取网页的通用代码框架
+    try:
+        hd = {'User-Agent': 'Mozilla/5.0'} #网站通过'user-agent'属性来区分请求来源，这里伪装成从Mozilla5.0发来的请求。
+        r = requests.get(url, timeout = 30, headers = hd)
+        r.raise_for_status() #判断返回的状态码，如果状态码不是200（如404），则抛出异常。
+        if r.encoding is None:
+            r.encoding = r.apparent_encoding #优选r.encoding，r.encoding更准确，如果r.encoding不存在再去找r.apparent_encoding。
+        return(r.text)
+    except:
+        return "发生异常"
+
+def getLinkList(html, l):
+    soup = BeautifulSoup(html, 'html.parser') #解剖html（r.text），同时变为一行一行的
+    a = soup.find_all('a') #a是一个集合，包含html里所有的a
+    for i in a:
+        try:
+            href = i.attrs['href']
+            l.append(re.findall(r"//k.autohome.com.cn/spec/\d*/view_\d*_", href)[0])
+        except:
+            continue
+    return l
+
+def getComment(html, fpath):
+    soup = BeautifulSoup(html, 'html.parser')
+    a = soup.find_all('div', {'class':'text-con'})
+    wordlist = []
+    try:
+        f = open(fpath, 'ab+')
+        for i in a:
+            for child in i.children:               
+                match = re.findall(r"[\u4e00-\u9fa5]+", str(child))         
+                for word in match:
+                    wordlist.append(word)
+        print(wordlist)                
+        for word in wordlist:            
+            f.write((word).encode('gbk'))
+        f.write(str('\n').encode('gbk'))
+        f.close()
+    except:
+        traceback.print_exc()                             
+
+def main():
+    car = '4221' #领克01的车辆代号，可以改成历遍所有car？
+    start_url = 'https://k.autohome.com.cn/' + car
+    depth = 1 #爬取页数
+    ldepth = 1 #评论页爬取页数
+    linklist = [] #存储评论页网址
+    comlist = [] #存储评论
+
+    fpath = 'D:\pa' + car + '.txt'
+    
+    for i in range(depth): 
+        try:
+            url = start_url + '/index_' + str(i+1) + '.html'
+            html = getHTMLText(url) #htlm就是r.text内容。
+            getLinkList(html, linklist)
+            #获取评论页面网址
+        except:
+            continue
+            
+    for link in linklist:
+        try:
+            for page in range(ldepth):    
+                newlink = 'https:' + link + str(page+1) + '.html'
+                linkhtml = getHTMLText(newlink)
+                getComment(linkhtml, fpath)
+        except:
+            continue
+    
+main()
+
+#翻页功能实现
+#隐藏部分内容，可进入指定网页抓取
+#无标点，由于标点问题，文字抓取不完全，无分段

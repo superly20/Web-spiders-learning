@@ -20,7 +20,7 @@ def getLinkList(html, l):
     for i in a:
         try:
             href = i.attrs['href']
-            l.append(re.findall(r"//k.autohome.com.cn/spec/\d*/view_\d*_", href)[0])
+            l.append(re.findall(r"//k.autohome.com.cn/spec/\d*/view_\d*_", href)[0]) #搜索字符串，以列表类型返回全部能匹配的子串
         except:
             continue
     return l
@@ -57,9 +57,8 @@ def main():
     for i in range(depth): 
         try:
             url = start_url + '/index_' + str(i+1) + '.html'
-            html = getHTMLText(url) #htlm就是r.text内容。
-            getLinkList(html, linklist)
-            #获取评论页面网址
+            html = getHTMLText(url)
+            getLinkList(html, linklist) #获取评论页面网址
         except:
             continue
             
